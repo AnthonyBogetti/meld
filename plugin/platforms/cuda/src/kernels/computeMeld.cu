@@ -317,6 +317,76 @@ extern "C" __global__ void computeDistRest(
     }
 }
 
+extern "C" __global__ void computeCartesianRest(
+                            const real4* __restrict__ posq,             // positions and charges
+                            const int* __restrict__ atomIndex,       // pair of atom indices
+                            const real3* __restrict__ coords,  // r1, r2, r3, r4
+                            const float* __restrict__ delta2,   // k
+                            const float* __restrict__ forceConstants,   // k
+                            int* __restrict__ indexToGlobal,            // array of indices into global arrays
+                            float* __restrict__ energies,               // global array of restraint energies
+                            float3* __restrict__ forceBuffer,           // temporary buffer to hold the force
+                            const int numRestraints) {
+    for (int index=blockIdx.x*blockDim.x+threadIdx.x; index<numRestraints; index+=blockDim.x*gridDim.x) {
+        // get my global index
+        const int globalIndex = indexToGlobal[index];
+
+        // get the force constant
+        const float k = forceConstants[index];
+
+        // get atom indices and compute distance
+        int aI = atomIndex[index];
+
+        if (aI == -1) {
+            // If the first index is -1, this restraint
+            // is marked as being not mapped.  We set the force to
+            // zero. We set the energy to FLT_MAX, so that this
+            // restraint will not be selected during sorting when
+            // the groups are evaluated. Later, when we apply
+            // restraints, this restraint will be applied with
+            // an energy of zero should it be selected.
+            float3 f;
+            f.x = 0.0;
+            f.y = 0.0;
+            f.z = 0.0;
+            forceBuffer[index] = f;
+            energies[globalIndex] = FLT_MAX;
+        } else {
+	    real3 predel;
+	    float ref = 0.0;
+	    predel.x = posq.x;
+	    predel.y = posq.y;
+	    predel.z = posq.z;
+            real3 delta = predel[aI] - coords[aI];
+            real distSquared = delta.x*delta.x + delta.y*delta.y + delta.z*delta.z;
+            real r = SQRT(distSquared);
+            real r_eff = max(ref, r - delta2[index]);
+
+            // compute force and energy
+            float energy = 0.0;
+            float dEdR = 0.0;
+            float3 f;
+
+	    energy = 0.5 * k * (r_eff * r_eff);
+            dEdR = k * r_eff;
+
+            // store force into local buffer
+            if (r > 0) {
+                f.x = delta.x * dEdR / r;
+                f.y = delta.y * dEdR / r;
+                f.z = delta.z * dEdR / r;
+            } else {
+                f.x = 0.0;
+                f.y = 0.0;
+                f.z = 0.0;
+            }
+            forceBuffer[index] = f;
+
+            // store energy into global buffer
+            energies[globalIndex] = energy;
+        }
+    }
+}
 
 extern "C" __global__ void computeHyperbolicDistRest(
                             const real4* __restrict__ posq,             // positions and charges
@@ -1151,6 +1221,43 @@ extern "C" __global__ void applyDistRest(
     energyBuffer[threadIndex] += energyAccum;
 }
 
+extern "C" __global__ void applyCartesianRest(
+                                unsigned long long * __restrict__ force,
+                                mixed* __restrict__ energyBuffer,
+                                const int* __restrict__ atomIndex,
+                                const int* __restrict__ globalIndices,
+                                const float3* __restrict__ restForces,
+                                const float* __restrict__ globalEnergies,
+                                const float* __restrict__ globalActive,
+                                const int numCartesianRestraints) {
+    int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+    float energyAccum = 0.0;
+
+    for (int restraintIndex=blockIdx.x*blockDim.x+threadIdx.x; restraintIndex<numCartesianRestraints; restraintIndex+=blockDim.x*gridDim.x) {
+        int globalIndex = globalIndices[restraintIndex];
+        if (globalActive[globalIndex]) {
+            // int index1 = atomIndices[restraintIndex].x;
+            // int index2 = atomIndices[restraintIndex].y;
+	    int index1 = 1;
+            if (index1 == -1) {
+                // Do nothing. This restraint is marked as being
+                // not mapped, so it contributes no energy or force.
+            } else {
+                energyAccum += globalEnergies[globalIndex];
+                float3 f = restForces[restraintIndex];
+
+                atomicAdd(&force[index1], static_cast<unsigned long long>((long long) (-f.x*0x100000000)));
+                atomicAdd(&force[index1  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.y*0x100000000)));
+                atomicAdd(&force[index1 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (-f.z*0x100000000)));
+
+                atomicAdd(&force[index2], static_cast<unsigned long long>((long long) (f.x*0x100000000)));
+                atomicAdd(&force[index2  + PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.y*0x100000000)));
+                atomicAdd(&force[index2 + 2 * PADDED_NUM_ATOMS], static_cast<unsigned long long>((long long) (f.z*0x100000000)));
+            }
+        }
+    }
+    energyBuffer[threadIndex] += energyAccum;
+}
 
 extern "C" __global__ void applyHyperbolicDistRest(
                                 unsigned long long * __restrict__ force,

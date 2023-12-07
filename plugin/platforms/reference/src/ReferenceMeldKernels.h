@@ -46,6 +46,7 @@ private:
     int numRDCAlignments;
     int numRDCRestraints;
     int numDistRestraints;
+    int numCartesianRestraints;
     int numHyperbolicDistRestraints;
     int numTorsionRestraints;
     int numDistProfileRestraints;
@@ -82,6 +83,18 @@ private:
     std::vector<int2> distanceRestAtomIndices;
     std::vector<int> distanceRestGlobalIndices;
     std::vector<float3> distanceRestForces;
+
+    /**
+     * Arrays for cartesian restraints
+     *
+     * Each array has size numCartesianRestraints
+     */
+    std::vector<float3> cartesianRestCoords;
+    std::vector<float> cartesianRestKParams;
+    std::vector<float> cartesianRestDelta;
+    std::vector<int> cartesianRestAtomIndex;
+    std::vector<int> cartesianRestGlobalIndices;
+    std::vector<float3> cartesianRestForces;
 
     /**
      * Arrays for hyperbolic distance restraints
@@ -186,6 +199,7 @@ private:
 
     void setupRDCRestraints(const MeldForce& force);
     void setupDistanceRestraints(const MeldForce& force);
+    void setupCartesianRestraints(const MeldForce& force);
     void setupHyperbolicDistanceRestraints(const MeldForce& force);
     void setupTorsionRestraints(const MeldForce& force);
     void setupDistProfileRestraints(const MeldForce& force);

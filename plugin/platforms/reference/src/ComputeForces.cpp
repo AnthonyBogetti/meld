@@ -297,6 +297,79 @@ void computeDistRest(
     }
 }
 
+void computeCartesianRest(
+    vector<RealVec> &pos,
+    vector<int> &atomIndex,
+    vector<float3> &coords,
+    vector<float> &forceConstants,
+    vector<float> &delta2,
+    vector<int> &indexToGlobal,
+    vector<float> &energies,
+    vector<float3> &forceBuffer,
+    int numRestraints)
+{
+    for (int index = 0; index < numRestraints; index++)
+    {
+        // get my global index
+        const int globalIndex = indexToGlobal[index];
+
+        // get the force constant
+        const float k = forceConstants[index];
+
+        const int aI = atomIndex[index];
+
+        float cx = get<0>(coords[aI]);
+        float cy = get<1>(coords[aI]);
+        float cz = get<2>(coords[aI]);
+        
+	Vec3 coords2;
+        coords2 = Vec3(cx, cy, cz);
+
+        if (aI == -1)
+        {
+            // If the first index is -1, this restraint
+            // is marked as being not mapped.  We set the force to
+            // zero. We set the energy to the maximum float value,
+            // so that this restraint will not be selected during
+            // sorting when the groups are evaluated. Later,
+            // when we apply restraints, this restraint will be
+            // applied with an energy of zero should it be selected.
+            forceBuffer[index] = float3(0, 0, 0);
+            energies[globalIndex] = std::numeric_limits<float>::max();
+        }
+        else
+        {
+            RealVec delta = pos[aI] - coords2;
+            float distSquared = delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2];
+ 	    float ref = 0.0;
+            float r = SQRT(distSquared);
+ 	    float r_eff = max(ref, r - delta2[index]);
+ 
+            // compute force and energy
+            float energy = 0.0;
+            float dEdR = 0.0;
+            float3 f;
+ 
+ 	    energy = 0.5 * k * (r_eff * r_eff);
+            dEdR = k * r_eff;
+ 
+            // store force into local buffer
+            if (r > 0)
+            {
+                f = float3(delta[0] * dEdR / r, delta[1] * dEdR / r, delta[2] * dEdR / r);
+            }
+            else
+            {
+                f = float3(0, 0, 0);
+            }
+            forceBuffer[index] = f;
+ 
+            // store energy into global buffer
+            energies[globalIndex] = energy;
+        }
+    }
+}
+
 void computeHyperbolicDistRest(
     vector<RealVec> &pos,
     vector<int2> &hyperbolicDistanceRestAtomIndices,
@@ -752,6 +825,41 @@ float applyDistRest(
                 auto atom2 = get<1>(distanceRestAtomIndices[i]);
                 force[atom1] += Vec3(-fx, -fy, -fz);
                 force[atom2] += Vec3(fx, fy, fz);
+            }
+        }
+    }
+    return totalEnergy;
+}
+
+float applyCartesianRest(
+    vector<RealVec> &force,
+    vector<int> &cartesianRestAtomIndex,
+    vector<int> &cartesianRestGlobalIndices,
+    vector<float3> &cartesianRestForces,
+    vector<float> &restraintEnergies,
+    vector<bool> &restraintActive,
+    int numCartesianRestraints)
+{
+    float totalEnergy = 0.0;
+    for (int i = 0; i < numCartesianRestraints; i++)
+    {
+        auto index = cartesianRestGlobalIndices[i];
+        if (restraintActive[index])
+        {
+            if (cartesianRestAtomIndex[i] == -1)
+            {
+                // Do nothing. This restraint is marked as being
+                // not mapped, so it contributes no energy or force.
+            }
+            else
+            {
+                totalEnergy += restraintEnergies[index];
+
+                auto fx = get<0>(cartesianRestForces[i]);
+                auto fy = get<1>(cartesianRestForces[i]);
+                auto fz = get<2>(cartesianRestForces[i]);
+                auto atom_index = cartesianRestAtomIndex[i];
+                force[atom_index] += Vec3(fx, fy, fz);
             }
         }
     }

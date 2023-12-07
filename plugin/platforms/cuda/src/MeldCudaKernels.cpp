@@ -90,6 +90,7 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     numRDCAlignments = 0;
     rdcScaleFactor = 0.0;
     numDistRestraints = 0;
+    numCartesianRestraints = 0;
     numHyperbolicDistRestraints = 0;
     numTorsionRestraints = 0;
     numDistProfileRestraints = 0;
@@ -119,6 +120,12 @@ CudaCalcMeldForceKernel::CudaCalcMeldForceKernel(std::string name, const Platfor
     distanceRestAtomIndices = nullptr;
     distanceRestGlobalIndices = nullptr;
     distanceRestForces = nullptr;
+    cartesianRestCoords = nullptr;
+    cartesianRestKParams = nullptr;
+    cartesianRestDelta = nullptr;
+    cartesianRestAtomIndex = nullptr;
+    cartesianRestGlobalIndices = nullptr;
+    cartesianRestForces = nullptr;
     hyperbolicDistanceRestRParams = nullptr;
     hyperbolicDistanceRestParams = nullptr;
     hyperbolicDistanceRestAtomIndices = nullptr;
@@ -194,6 +201,12 @@ CudaCalcMeldForceKernel::~CudaCalcMeldForceKernel()
     delete distanceRestAtomIndices;
     delete distanceRestGlobalIndices;
     delete distanceRestForces;
+    delete cartesianRestCoords;
+    delete cartesianRestKParams;
+    delete cartesianRestDelta;
+    delete cartesianRestAtomIndex;
+    delete cartesianRestGlobalIndices;
+    delete cartesianRestForces;
     delete hyperbolicDistanceRestRParams;
     delete hyperbolicDistanceRestParams;
     delete hyperbolicDistanceRestAtomIndices;
@@ -256,6 +269,7 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
     numRDCAlignments = force.getNumRDCAlignments();
     numRDCRestraints = force.getNumRDCRestraints();
     numDistRestraints = force.getNumDistRestraints();
+    numCartesianRestraints = force.getNumCartesianRestraints();
     numHyperbolicDistRestraints = force.getNumHyperbolicDistRestraints();
     numTorsionRestraints = force.getNumTorsionRestraints();
     numDistProfileRestraints = force.getNumDistProfileRestraints();
@@ -296,6 +310,16 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
         distanceRestAtomIndices = CudaArray::create<int2>(cu, numDistRestraints, "distanceRestAtomIndices");
         distanceRestGlobalIndices = CudaArray::create<int>(cu, numDistRestraints, "distanceRestGlobalIndices");
         distanceRestForces = CudaArray::create<float3>(cu, numDistRestraints, "distanceRestForces");
+    }
+
+    if (numCartesianRestraints > 0)
+    {
+        cartesianRestCoords = CudaArray::create<float3>(cu, numCartesianRestraints, "cartesianRestCoords");
+        cartesianRestKParams = CudaArray::create<float>(cu, numCartesianRestraints, "cartesianRestKParams");
+        cartesianRestDelta = CudaArray::create<float>(cu, numCartesianRestraints, "cartesianRestDelta");
+        cartesianRestAtomIndex = CudaArray::create<int>(cu, numCartesianRestraints, "cartesianRestAtomIndex");
+        cartesianRestGlobalIndices = CudaArray::create<int>(cu, numCartesianRestraints, "cartesianRestGlobalIndices");
+        cartesianRestForces = CudaArray::create<float3>(cu, numCartesianRestraints, "cartesianRestForces");
     }
 
     if (numHyperbolicDistRestraints > 0)
@@ -395,6 +419,11 @@ void CudaCalcMeldForceKernel::allocateMemory(const MeldForce &force)
     h_distanceRestKParams = std::vector<float>(numDistRestraints, 0);
     h_distanceRestAtomIndices = std::vector<int2>(numDistRestraints, make_int2(-1, -1));
     h_distanceRestGlobalIndices = std::vector<int>(numDistRestraints, -1);
+    h_cartesianRestCoords = std::vector<float3>(numCartesianRestraints, make_float3(0, 0, 0));
+    h_cartesianRestKParams = std::vector<float>(numCartesianRestraints, 0);
+    h_cartesianRestDelta = std::vector<float>(numCartesianRestraints, 0);
+    h_cartesianRestAtomIndex = std::vector<int>(numCartesianRestraints, -1);
+    h_cartesianRestGlobalIndices = std::vector<int>(numCartesianRestraints, -1);
     h_hyperbolicDistanceRestRParams = std::vector<float4>(numHyperbolicDistRestraints, make_float4(0, 0, 0, 0));
     h_hyperbolicDistanceRestParams = std::vector<float4>(numHyperbolicDistRestraints, make_float4(0, 0, 0, 0));
     h_hyperbolicDistanceRestAtomIndices = std::vector<int2>(numHyperbolicDistRestraints, make_int2(-1, -1));
@@ -693,6 +722,24 @@ void CudaCalcMeldForceKernel::setupDistanceRestraints(const MeldForce &force)
         h_distanceRestKParams[i] = k;
         h_distanceRestAtomIndices[i] = make_int2(atom_i, atom_j);
         h_distanceRestGlobalIndices[i] = global_index;
+    }
+}
+
+void CudaCalcMeldForceKernel::setupCartesianRestraints(const MeldForce &force)
+{
+    int numAtoms = system.getNumParticles();
+    std::string restType = "cartesian restraint";
+    for (int i = 0; i < numCartesianRestraints; ++i)
+    {
+        int atom_index, global_index;
+        float x, y, z, delta, k;
+        force.getCartesianRestraintParams(i, atom_index, x, y, z, delta, k, global_index);
+
+        h_cartesianRestCoords[i] = make_float3(x, y, z);
+        h_cartesianRestKParams[i] = k;
+        h_cartesianRestDelta[i] = delta;
+        h_cartesianRestAtomIndex[i] = atom_index;
+        h_cartesianRestGlobalIndices[i] = global_index;
     }
 }
 
@@ -1145,6 +1192,15 @@ void CudaCalcMeldForceKernel::validateAndUpload()
         distanceRestGlobalIndices->upload(h_distanceRestGlobalIndices);
     }
 
+    if (numCartesianRestraints > 0)
+    {
+        cartesianRestCoords->upload(h_cartesianRestCoords);
+        cartesianRestKParams->upload(h_cartesianRestKParams);
+        cartesianRestDelta->upload(h_cartesianRestDelta);
+        cartesianRestAtomIndex->upload(h_cartesianRestAtomIndex);
+        cartesianRestGlobalIndices->upload(h_cartesianRestGlobalIndices);
+    }
+    
     if (numHyperbolicDistRestraints > 0)
     {
         hyperbolicDistanceRestRParams->upload(h_hyperbolicDistanceRestRParams);
@@ -1221,6 +1277,7 @@ void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &
     setupRDCDerivIndices();
     setupRDCRestraints(force);
     setupDistanceRestraints(force);
+    setupCartesianRestraints(force);
     setupHyperbolicDistanceRestraints(force);
     setupTorsionRestraints(force);
     setupDistProfileRestraints(force);
@@ -1260,6 +1317,7 @@ void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &
     CUmodule module = cu.createModule(cu.replaceStrings(CudaMeldKernelSources::vectorOps + CudaMeldKernelSources::computeMeld, replacements), defines);
     computeRDCRestKernel = cu.getKernel(module, "computeRDCRest");
     computeDistRestKernel = cu.getKernel(module, "computeDistRest");
+    computeCartesianRestKernel = cu.getKernel(module, "computeCartesianRest");
     computeHyperbolicDistRestKernel = cu.getKernel(module, "computeHyperbolicDistRest");
     computeTorsionRestKernel = cu.getKernel(module, "computeTorsionRest");
     computeDistProfileRestKernel = cu.getKernel(module, "computeDistProfileRest");
@@ -1271,6 +1329,7 @@ void CudaCalcMeldForceKernel::initialize(const System &system, const MeldForce &
     applyGroupsKernel = cu.getKernel(module, "applyGroups");
     applyRDCRestKernel = cu.getKernel(module, "applyRDCRest");
     applyDistRestKernel = cu.getKernel(module, "applyDistRest");
+    applyCartesianRestKernel = cu.getKernel(module, "applyCartesianRest");
     applyHyperbolicDistRestKernel = cu.getKernel(module, "applyHyperbolicDistRest");
     applyTorsionRestKernel = cu.getKernel(module, "applyTorsionRest");
     applyDistProfileRestKernel = cu.getKernel(module, "applyDistProfileRest");
@@ -1285,6 +1344,7 @@ void CudaCalcMeldForceKernel::copyParametersToContext(ContextImpl &context, cons
 
     setupRDCRestraints(force);
     setupDistanceRestraints(force);
+    setupCartesianRestraints(force);
     setupHyperbolicDistanceRestraints(force);
     setupTorsionRestraints(force);
     setupDistProfileRestraints(force);
@@ -1351,6 +1411,21 @@ double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces
             &distanceRestForces->getDevicePointer(),
             &numDistRestraints};
         cu.executeKernel(computeDistRestKernel, distanceArgs, numDistRestraints);
+    }
+
+    if (numCartesianRestraints > 0)
+    {
+        void *distanceArgs[] = {
+            &cu.getPosq().getDevicePointer(),
+            &cartesianRestAtomIndex->getDevicePointer(),
+            &cartesianRestCoords->getDevicePointer(),
+            &cartesianRestKParams->getDevicePointer(),
+            &cartesianRestDelta->getDevicePointer(),
+            &cartesianRestGlobalIndices->getDevicePointer(),
+            &restraintEnergies->getDevicePointer(),
+            &cartesianRestForces->getDevicePointer(),
+            &numCartesianRestraints};
+        cu.executeKernel(computeCartesianRestKernel, cartesianArgs, numCartesianRestraints);
     }
 
     if (numHyperbolicDistRestraints > 0)
@@ -1512,6 +1587,20 @@ double CudaCalcMeldForceKernel::execute(ContextImpl &context, bool includeForces
             &restraintActive->getDevicePointer(),
             &numDistRestraints};
         cu.executeKernel(applyDistRestKernel, applyDistRestArgs, numDistRestraints);
+    }
+
+    if (numCartesianRestraints > 0)
+    {
+        void *applyCartesianRestArgs[] = {
+            &cu.getForce().getDevicePointer(),
+            &cu.getEnergyBuffer().getDevicePointer(),
+            &cartesianRestAtomIndex->getDevicePointer(),
+            &cartesianRestGlobalIndices->getDevicePointer(),
+            &cartesianRestForces->getDevicePointer(),
+            &restraintEnergies->getDevicePointer(),
+            &restraintActive->getDevicePointer(),
+            &numCartesianRestraints};
+        cu.executeKernel(applyCartesianRestKernel, applyCartesianRestArgs, numCartesianRestraints);
     }
 
     if (numHyperbolicDistRestraints > 0)

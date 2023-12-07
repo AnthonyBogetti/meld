@@ -73,6 +73,62 @@ void testDistRestSerialization() {
     }
 }
 
+void testCartesianRestSerialization() {
+    // create MeldForce
+    MeldForce force;
+    int k = 1.0;
+    int restIdx = force.addCartesianRestraint(0, 0.0, 0.0, 0.0, 1.0, k);
+    std::vector<int> restIndices(1);
+    restIndices[0] = restIdx;
+    int groupIdx = force.addGroup(restIndices, 1);
+    std::vector<int> groupIndices(1);
+    groupIndices[0] = groupIdx;
+    force.addCollection(groupIndices, 1);
+
+    // Serialize and then deserialize it.
+    stringstream buffer;
+    XmlSerializer::serialize<MeldForce>(&force, "Force", buffer);
+    MeldForce* copy = XmlSerializer::deserialize<MeldForce>(buffer);
+
+    // Compare the two forces to see if they are identical.
+    MeldForce& force2 = *copy;
+    ASSERT_EQUAL(force.getNumCartesianRestraints(), force2.getNumCartesianRestraints());
+    for (int i = 0; i < force.getNumCartesianRestraints(); i++) {
+        int atom_indexa, globalIndexa;
+        float xa, ya, za, deltaa, forceConstanta;
+        int atom_indexb, globalIndexb;
+        float xb, yb, zb, deltab, forceConstantb;
+        force.getCartesianRestraintParams(i, atom_indexa, xa, ya, za, deltaa, forceConstanta, globalIndexa);
+        force2.getCartesianRestraintParams(i, atom_indexb, xb, yb, zb, deltab, forceConstantb, globalIndexb);
+        ASSERT_EQUAL(atom_indexa, atom_indexb);
+        ASSERT_EQUAL(xa, xb);
+        ASSERT_EQUAL(ya, yb);
+        ASSERT_EQUAL(za, zb);
+        ASSERT_EQUAL(deltaa, deltab);
+        ASSERT_EQUAL(forceConstanta, forceConstantb);
+        ASSERT_EQUAL(globalIndexa, globalIndexb);
+    }
+
+    std::vector<int> indicesA;
+    std::vector<int> indicesB;
+    int numActiveA, numActiveB;
+    force.getGroupParams(0, indicesA, numActiveA);
+    force2.getGroupParams(0, indicesB, numActiveB);
+    ASSERT_EQUAL(numActiveA, numActiveB);
+    ASSERT_EQUAL(indicesA.size(), indicesB.size());
+    for (int i = 0; i < indicesA.size(); i++) {
+        ASSERT_EQUAL(indicesA[i], indicesB[i]);
+    }
+
+    force.getCollectionParams(0, indicesA, numActiveA);
+    force2.getCollectionParams(0, indicesB, numActiveB);
+    ASSERT_EQUAL(numActiveA, numActiveB);
+    ASSERT_EQUAL(indicesA.size(), indicesB.size());
+    for (int i = 0; i < indicesA.size(); i++) {
+        ASSERT_EQUAL(indicesA[i], indicesB[i]);
+    }
+}
+
 void testTorsRestSerialization() {
     // create MeldForce
     MeldForce force;
@@ -347,6 +403,7 @@ int main() {
     try {
         registerMeldSerializationProxies();
         testDistRestSerialization();
+        testCartesianRestSerialization();
         testTorsRestSerialization();
         testDistProfRestSerialization();
         testTorsProfRestSerialization();

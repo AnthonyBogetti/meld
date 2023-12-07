@@ -46,6 +46,15 @@ std::vector<std::pair<int, int> > MeldForce::getBondedParticles() const
         bonds.push_back(std::make_pair(atom1, atom2));
     }
 
+    for (int i = 0; i < this->getNumCartesianRestraints(); i++)
+    {
+        int atom_index;
+        float x, y, z, delta;
+        float forceConstant;
+        int globalIndex;
+        this->getCartesianRestraintParams(i, atom_index, x, y, z, delta, forceConstant, globalIndex);
+    }
+
     for (int i = 0; i < this->getNumHyperbolicDistRestraints(); i++)
     {
         int atom1, atom2;
@@ -213,6 +222,11 @@ int MeldForce::getNumDistRestraints() const
     return distanceRestraints.size();
 }
 
+int MeldForce::getNumCartesianRestraints() const
+{
+    return cartesianRestraints.size();
+}
+
 int MeldForce::getNumHyperbolicDistRestraints() const
 {
     return hyperbolicDistanceRestraints.size();
@@ -334,6 +348,25 @@ void MeldForce::modifyDistanceRestraint(int index, int particle1, int particle2,
 
     distanceRestraints.at(index) =
         DistanceRestraintInfo(particle1, particle2, r1, r2, r3, r4, force_constant, oldGlobal);
+}
+
+int MeldForce::addCartesianRestraint(int atom_index, float x, float y,
+                                    float z, float delta, float force_constant)
+{
+    meldParticleSet.insert(atom_index);
+    cartesianRestraints.push_back(
+        CartesianRestraintInfo(atom_index, x, y, z, delta, force_constant, n_restraints));
+    n_restraints++;
+    return n_restraints - 1;
+}
+
+void MeldForce::modifyCartesianRestraint(int index, int atom_index, float x, float y,
+                                        float z, float delta, float force_constant)
+{
+    int oldGlobal = cartesianRestraints[index].global_index;
+
+    cartesianRestraints.at(index) =
+        CartesianRestraintInfo(atom_index, x, y, z, delta, force_constant, oldGlobal);
 }
 
 int MeldForce::addGMMRestraint(int nPairs, int nComponents, float scale,
@@ -748,6 +781,19 @@ void MeldForce::getDistanceRestraintParams(int index, int &atom1, int &atom2, fl
     r2 = rest.r2;
     r3 = rest.r3;
     r4 = rest.r4;
+    forceConstant = rest.force_constant;
+    globalIndex = rest.global_index;
+}
+
+void MeldForce::getCartesianRestraintParams(int index, int &atom_index, float &x, float &y, float &z, float &delta,
+                                           float &forceConstant, int &globalIndex) const
+{
+    const CartesianRestraintInfo &rest = cartesianRestraints[index];
+    atom_index = rest.atom_index;
+    x = rest.x;
+    y = rest.y;
+    z = rest.z;
+    delta = rest.delta;
     forceConstant = rest.force_constant;
     globalIndex = rest.global_index;
 }

@@ -236,6 +236,18 @@ class MeldRestraintTransformer(transform.TransformerBase):
                     dist_rest.r4(alpha),
                     dist_rest.k * scale,
                 )
+            elif category == "cartesian":
+                cartesian_rest = self.tracker.cartesian_restraints[index]
+                scale = cartesian_rest.scaler(alpha) * cartesian_rest.ramp(timestep)
+                self.force.modifyCartesianRestraint(
+                    index,
+                    cartesian_rest.atom_index,
+                    cartesian_rest.x,
+                    cartesian_rest.y,
+                    cartesian_rest.z,
+                    cartesian_rest.delta,
+                    cartesian_rest.force_const * scale,
+                )
             elif category == "hyperbolic_distance":
                 hyper_rest = self.tracker.hyperbolic_distance_restraints[index]
                 scale = hyper_rest.scaler(alpha) * hyper_rest.ramp(timestep)
@@ -414,6 +426,18 @@ class MeldRestraintTransformer(transform.TransformerBase):
                 rest.k * scale,
             )
             self.tracker.add_distance_restraint(rest, alpha, timestep, state)
+
+        elif isinstance(rest, restraints.CartesianRestraint):
+            print(rest.atom_index, rest.x, rest.delta)
+            rest_index = meld_force.addCartesianRestraint(
+                rest.atom_index,
+                rest.x,
+                rest.y,
+                rest.z,
+                rest.delta,
+                rest.force_const * scale,
+            )
+            self.tracker.add_cartesian_restraint(rest, alpha, timestep, state)
 
         elif isinstance(rest, restraints.HyperbolicDistanceRestraint):
             rest_index = meld_force.addHyperbolicDistanceRestraint(

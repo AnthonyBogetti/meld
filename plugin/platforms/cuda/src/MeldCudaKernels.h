@@ -51,6 +51,7 @@ private:
     int numRDCAlignments;
     int numRDCRestraints;
     int numDistRestraints;
+    int numCartesianRestraints;
     int numHyperbolicDistRestraints;
     int numTorsionRestraints;
     int numDistProfileRestraints;
@@ -74,6 +75,7 @@ private:
     const OpenMM::System& system;
     CUfunction computeRDCRestKernel;
     CUfunction computeDistRestKernel;
+    CUfunction computeCartesianRestKernel;
     CUfunction computeHyperbolicDistRestKernel;
     CUfunction computeTorsionRestKernel;
     CUfunction computeDistProfileRestKernel;
@@ -130,6 +132,28 @@ private:
     std::vector<int> h_distanceRestGlobalIndices;
 
     OpenMM::CudaArray* distanceRestForces; // cache to hold force computations until the final application step
+
+    /**
+     * Arrays for cartesian restraints
+     *
+     * Each array has size numCartesianRestraints
+     */
+    OpenMM::CudaArray* cartesianRestCoords;       // float4 to hold r1-r4
+    std::vector<float3> h_cartesianRestCoords;
+
+    OpenMM::CudaArray* cartesianRestKParams;       // float to hold k
+    std::vector<float> h_cartesianRestKParams;
+
+    OpenMM::CudaArray* cartesianRestDelta;       // float to hold k
+    std::vector<float> h_cartesianRestDelta;
+
+    OpenMM::CudaArray* cartesianRestAtomIndex;   // int2 to hold i,j
+    std::vector<int> h_cartesianRestAtomIndex;
+
+    OpenMM::CudaArray* cartesianRestGlobalIndices; // int to hold the global index for this restraint
+    std::vector<int> h_cartesianRestGlobalIndices;
+
+    OpenMM::CudaArray* cartesianRestForces; // cache to hold force computations until the final application step
 
     /**
      * Arrays for hyperbolic distance restraints
@@ -339,6 +363,7 @@ private:
     void setupRDCRestraints(const MeldForce& force);
     void setupRDCDerivIndices();
     void setupDistanceRestraints(const MeldForce& force);
+    void setupCartesianRestraints(const MeldForce& force);
     void setupHyperbolicDistanceRestraints(const MeldForce& force);
     void setupTorsionRestraints(const MeldForce& force);
     void setupDistProfileRestraints(const MeldForce& force);

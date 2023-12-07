@@ -27,6 +27,7 @@ class RestraintTracker:
     peak_mapper: mapping.PeakMapManager
     rdc_restraints: List[restraints.RdcRestraint]
     distance_restraints: List[restraints.DistanceRestraint]
+    cartesian_restraints: List[restraints.CartesianRestraint]
     hyperbolic_distance_restraints: List[restraints.HyperbolicDistanceRestraint]
     torsion_restraints: List[restraints.TorsionRestraint]
     dist_prof_restraints: List[restraints.DistProfileRestraint]
@@ -61,6 +62,7 @@ class RestraintTracker:
         # These hold lists of meld restraints in the order that they were added
         # to the system.
         self.distance_restraints = []
+        self.cartesian_restraints = []
         self.rdc_restraints = []
         self.hyperbolic_distance_restraints = []
         self.torsion_restraints = []
@@ -205,6 +207,22 @@ class RestraintTracker:
         self._add_positioner_dependency(rest.r4, "distance", index, alpha)
         self._add_peak_mapping_dependency(rest.atom_index_1, "distance", index, state)
         self._add_peak_mapping_dependency(rest.atom_index_2, "distance", index, state)
+
+    def add_cartesian_restraint(
+        self,
+        rest: restraints.CartesianRestraint,
+        alpha: float,
+        timestep: int,
+        state: interfaces.IState,
+    ):
+        assert isinstance(rest, restraints.CartesianRestraint)
+
+        self.cartesian_restraints.append(rest)
+        index = len(self.cartesian_restraints) - 1
+        self.need_update.add(("cartesian", index))
+
+        self._add_scaler_dependency(rest.scaler, "cartesian", index, alpha)
+        self._add_ramp_dependency(rest.ramp, "cartesian", index, timestep)
 
     def add_hyperbolic_distance_restraint(
         self,

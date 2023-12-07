@@ -29,6 +29,17 @@ void computeDistRest(
     vector<float3> &distanceRestForces,
     int numDistRestraints);
 
+void computeCartesianRest(
+    vector<RealVec> &pos,
+    vector<int> &cartesianRestAtomIndex,
+    vector<float3> &cartesianRestCoords,
+    vector<float> &cartesianRestKParams,
+    vector<float> &cartesianRestDelta,
+    vector<int> &cartesianRestGlobalIndices,
+    vector<float> &restraintEnergies,
+    vector<float3> &cartesianRestForces,
+    int numCartesianRestraints);
+
 void computeHyperbolicDistRest(
     vector<RealVec> &pos,
     vector<int2> &hyperbolicDistanceRestAtomIndices,
@@ -145,6 +156,15 @@ float applyDistRest(
     vector<float> &restraintEnergies,
     vector<bool> &restraintActive,
     int numDistRestraints);
+
+float applyCartesianRest(
+    vector<RealVec> &force,
+    vector<int> &cartesianRestAtomIndex,
+    vector<int> &cartesianRestGlobalIndices,
+    vector<float3> &cartesianRestForces,
+    vector<float> &restraintEnergies,
+    vector<bool> &restraintActive,
+    int numCartesianRestraints);
 
 float applyHyperbolicDistRest(
     vector<RealVec> &force,

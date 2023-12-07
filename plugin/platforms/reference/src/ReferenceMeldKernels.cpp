@@ -177,6 +177,7 @@ ReferenceCalcMeldForceKernel::ReferenceCalcMeldForceKernel(std::string name, con
     numRDCRestraints = 0;
     numRDCAlignments = 0;
     numDistRestraints = 0;
+    numCartesianRestraints = 0;
     numHyperbolicDistRestraints = 0;
     numTorsionRestraints = 0;
     numDistProfileRestraints = 0;
@@ -194,6 +195,7 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
     numRDCAlignments = force.getNumRDCAlignments();
     numRDCRestraints = force.getNumRDCRestraints();
     numDistRestraints = force.getNumDistRestraints();
+    numCartesianRestraints = force.getNumCartesianRestraints();
     numHyperbolicDistRestraints = force.getNumHyperbolicDistRestraints();
     numTorsionRestraints = force.getNumTorsionRestraints();
     numDistProfileRestraints = force.getNumDistProfileRestraints();
@@ -222,6 +224,13 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
     distanceRestAtomIndices = std::vector<int2>(numDistRestraints, int2(-1, -1));
     distanceRestGlobalIndices = std::vector<int>(numDistRestraints, -1);
     distanceRestForces = std::vector<float3>(numDistRestraints, float3(0, 0, 0));
+
+    cartesianRestCoords = std::vector<float3>(numCartesianRestraints, float3(0, 0, 0));
+    cartesianRestKParams = std::vector<float>(numCartesianRestraints, 0);
+    cartesianRestDelta = std::vector<float>(numCartesianRestraints, 0);
+    cartesianRestAtomIndex = std::vector<int>(numCartesianRestraints, 0);
+    cartesianRestGlobalIndices = std::vector<int>(numCartesianRestraints, -1);
+    cartesianRestForces = std::vector<float3>(numCartesianRestraints, float3(0, 0, 0));
 
     hyperbolicDistanceRestRParams = std::vector<float4>(numHyperbolicDistRestraints, float4(0, 0, 0, 0));
     hyperbolicDistanceRestParams = std::vector<float4>(numHyperbolicDistRestraints, float4(0, 0, 0, 0));
@@ -282,6 +291,7 @@ void ReferenceCalcMeldForceKernel::initialize(const System &system, const MeldFo
 
     setupRDCRestraints(force);
     setupDistanceRestraints(force);
+    setupCartesianRestraints(force);
     setupHyperbolicDistanceRestraints(force);
     setupTorsionRestraints(force);
     setupDistProfileRestraints(force);
@@ -347,6 +357,21 @@ double ReferenceCalcMeldForceKernel::execute(ContextImpl &context, bool includeF
             restraintEnergies,
             distanceRestForces,
             numDistRestraints);
+    }
+
+    if (numCartesianRestraints > 0)
+    {
+        fill(cartesianRestForces.begin(), cartesianRestForces.end(), float3(0, 0, 0));
+        computeCartesianRest(
+            pos,
+            cartesianRestAtomIndex,
+            cartesianRestCoords,
+            cartesianRestKParams,
+            cartesianRestDelta,
+            cartesianRestGlobalIndices,
+            restraintEnergies,
+            cartesianRestForces,
+            numCartesianRestraints);
     }
 
     if (numHyperbolicDistRestraints > 0)
@@ -502,6 +527,18 @@ double ReferenceCalcMeldForceKernel::execute(ContextImpl &context, bool includeF
             numDistRestraints);
     }
 
+    if (numCartesianRestraints > 0)
+    {
+        energy += applyCartesianRest(
+            force,
+            cartesianRestAtomIndex,
+            cartesianRestGlobalIndices,
+            cartesianRestForces,
+            restraintEnergies,
+            restraintActive,
+            numCartesianRestraints);
+    }
+
     if (numHyperbolicDistRestraints > 0)
     {
         energy += applyHyperbolicDistRest(
@@ -582,6 +619,7 @@ void ReferenceCalcMeldForceKernel::copyParametersToContext(ContextImpl &context,
 {
     setupRDCRestraints(force);
     setupDistanceRestraints(force);
+    setupCartesianRestraints(force);
     setupHyperbolicDistanceRestraints(force);
     setupTorsionRestraints(force);
     setupDistProfileRestraints(force);
@@ -704,6 +742,24 @@ void ReferenceCalcMeldForceKernel::setupDistanceRestraints(const MeldForce& forc
         distanceRestKParams[i] = k;
         distanceRestAtomIndices[i] = int2(atom_i, atom_j);
         distanceRestGlobalIndices[i] = global_index;
+    }
+}
+
+void ReferenceCalcMeldForceKernel::setupCartesianRestraints(const MeldForce& force)
+{
+    int numAtoms = system.getNumParticles();
+    std::string restType = "cartesian restraint";
+    for (int i = 0; i < numCartesianRestraints; ++i)
+    {
+        int atom_index, global_index;
+        float x, y, z, delta, k;
+        force.getCartesianRestraintParams(i, atom_index, x, y, z, delta, k, global_index);
+
+        cartesianRestCoords[i] = float3(x, y, z);
+        cartesianRestKParams[i] = k;
+        cartesianRestDelta[i] = delta;
+        cartesianRestAtomIndex[i] = atom_index;
+        cartesianRestGlobalIndices[i] = global_index;
     }
 }
 

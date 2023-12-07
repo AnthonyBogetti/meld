@@ -36,6 +36,22 @@ void MeldForceProxy::serialize(const void* object, SerializationNode& node) cons
         dr.setIntProperty("globalIndex", globalIndex);
     }
 
+    // serialize cartesian restraints
+    SerializationNode& cartesianRestraints = node.createChildNode("CartesianRestraints");
+    for (int i = 0; i < force.getNumCartesianRestraints(); i++) {
+        int atom_index, globalIndex;
+        float x, y, z, delta, forceConstant;
+        force.getCartesianRestraintParams(i, atom_index, x, y, z, delta, forceConstant, globalIndex);
+        SerializationNode& cr = cartesianRestraints.createChildNode("CartesianRestraint");
+        cr.setIntProperty("atom_index", atom_index);
+        cr.setDoubleProperty("x", x);
+        cr.setDoubleProperty("y", y);
+        cr.setDoubleProperty("z", z);
+        cr.setDoubleProperty("delta", delta);
+        cr.setDoubleProperty("forceConstant", forceConstant);
+        cr.setIntProperty("globalIndex", globalIndex);
+    }
+
     // serialize torsion restraints
     SerializationNode& torsionRestraints = node.createChildNode("TorsionRestraints");
     for (int i = 0; i < force.getNumTorsionRestraints(); i++) {
@@ -293,6 +309,19 @@ void* MeldForceProxy::deserialize(const SerializationNode& node) const {
             float r4 = dr.getDoubleProperty("r4");
             float forceConstant = dr.getDoubleProperty("forceConstant");
             force->addDistanceRestraint(atom1, atom2, r1, r2, r3, r4, forceConstant);
+        }
+
+	// deserialize cartesian restraints
+        const SerializationNode& cartesianRestraints = node.getChildNode("CartesianRestraints");
+        for (int i = 0; i < (int) cartesianRestraints.getChildren().size(); i++) {
+            const SerializationNode& cr = cartesianRestraints.getChildren()[i];
+            int atom_index = cr.getIntProperty("atom_index");
+            float x = cr.getDoubleProperty("x");
+            float y = cr.getDoubleProperty("y");
+            float z = cr.getDoubleProperty("z");
+            float delta = cr.getDoubleProperty("delta");
+            float forceConstant = cr.getDoubleProperty("forceConstant");
+            force->addCartesianRestraint(atom_index, x, y, z, delta, forceConstant);
         }
 
         // deserialize torsion restraints

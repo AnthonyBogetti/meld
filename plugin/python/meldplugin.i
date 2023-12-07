@@ -44,6 +44,8 @@ namespace MeldPlugin {
         void updateParametersInContext(OpenMM::Context& context);
 
         int getNumDistRestraints() const;
+        
+        int getNumCartesianRestraints() const;
 
         int getNumTorsionRestraints() const;
 
@@ -105,6 +107,23 @@ namespace MeldPlugin {
         %clear float& r2;
         %clear float& r3;
         %clear float& r4;
+        %clear float& forceConstant;
+        %clear int& globalIndex;
+
+        %apply int& OUTPUT {int& atom_index};
+        %apply float& OUTPUT {float& x};
+        %apply float& OUTPUT {float& y};
+        %apply float& OUTPUT {float& z};
+        %apply float& OUTPUT {float& delta};
+        %apply float& OUTPUT {float& forceConstant};
+        %apply int& OUTPUT {int& globalIndex};
+        void getCartesianRestraintParams(int index, int& atom_index, float& x, float& y, float& z,
+                float& delta, float& forceConstant, int& globalIndex) const;
+        %clear int& atom_index;
+        %clear float& x;
+        %clear float& y;
+        %clear float& z;
+        %clear float& delta;
         %clear float& forceConstant;
         %clear int& globalIndex;
 
@@ -328,6 +347,12 @@ namespace MeldPlugin {
 
         void modifyDistanceRestraint(int index, int particle1, int particle2, float r1, float r2, float r3,
                 float r4, float force_constant);
+
+        int addCartesianRestraint(int atom_index, float x, float y, float z, float delta,
+                float force_constant);
+
+        void modifyCartesianRestraint(int index, int atom_index, float x, float y, float z,
+                float delta, float force_constant);
 
         int addHyperbolicDistanceRestraint(int particle1, int particle2, float r1, float r2, float r3, float r4,
                 float force_constant, float asymptote);

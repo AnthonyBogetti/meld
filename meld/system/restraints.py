@@ -889,7 +889,7 @@ class ConfinementRestraint(NonSelectableRestraint):
             raise ValueError("force_constant must be > 0")
 
 
-class CartesianRestraint(NonSelectableRestraint):
+class CartesianRestraint(SelectableRestraint):
     """Cartesian restraint on xyz coordinates"""
 
     _restraint_key_ = "cartesian"

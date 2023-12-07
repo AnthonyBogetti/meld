@@ -68,6 +68,11 @@ public:
     int getNumDistRestraints() const;
 
     /**
+     * @return The number of cartesian restraints.
+     */
+    int getNumCartesianRestraints() const;
+
+    /**
      * @return The number of hyperbolic distance restraints.
      */
     int getNumHyperbolicDistRestraints() const;
@@ -161,6 +166,22 @@ public:
      */
     void getDistanceRestraintParams(int index, int& atom1, int& atom2, float& r1, float& r2, float& r3,
             float& r4, float& forceConstant, int& globalIndex) const;
+
+    /**
+     * Get the parameters for a cartesian restraint. See addCartesianRestraint()
+     * for more details about the parameters.
+     *
+     * @param index  the index of the restraint
+     * @param atom_index  the atom being restrained
+     * @param x the equilibrium x value 
+     * @param y the equilibrium y value 
+     * @param z the equilibrium z value 
+     * @param delta  the variance
+     * @param forceConstant  the force constant
+     * @param globalIndex  the global index of the restraint
+     */
+    void getCartesianRestraintParams(int index, int& atom_index, float& x, float& y, float& z,
+            float& delta, float& forceConstant, int& globalIndex) const;
 
     /**
      * Get the parameters for a hyperbolic distance restraint. See addHyperbolicDistanceRestraint()
@@ -368,6 +389,12 @@ public:
      */
     void modifyDistanceRestraint(int index, int particle1, int particle2, float r1, float r2, float r3,
             float r4, float force_constant);
+
+    int addCartesianRestraint(int atom_index, float x, float y, float z, float delta,
+            float force_constant);
+
+    void modifyCartesianRestraint(int index, int atom_index, float x, float y, float z,
+            float delta, float force_constant);
 
     /**
      * Create a new hyperbolic distance restraint.
@@ -704,6 +731,7 @@ protected:
 private:
     class RDCRestraintInfo;
     class DistanceRestraintInfo;
+    class CartesianRestraintInfo;
     class TorsionRestraintInfo;
     class HyperbolicDistanceRestraintInfo;
     class DistProfileRestraintInfo;
@@ -718,6 +746,7 @@ private:
     float rdcScaleFactor;
     std::vector<RDCRestraintInfo> rdcRestraints;
     std::vector<DistanceRestraintInfo> distanceRestraints;
+    std::vector<CartesianRestraintInfo> cartesianRestraints;
     std::vector<HyperbolicDistanceRestraintInfo> hyperbolicDistanceRestraints;
     std::vector<TorsionRestraintInfo> torsions;
     std::vector<DistProfileRestraintInfo> distProfileRestraints;
@@ -770,6 +799,26 @@ private:
         DistanceRestraintInfo(int particle1, int particle2, float r1, float r2, float r3, float r4,
                 float force_constant, int global_index) : particle1(particle1), particle2(particle2), r1(r1),
                                                             r2(r2), r3(r3), r4(r4), force_constant(force_constant),
+                                                            global_index(global_index) {
+        }
+    };
+
+    class CartesianRestraintInfo {
+    public:
+        int atom_index;
+        float x, y, z, delta, force_constant;
+        int global_index;
+
+        CartesianRestraintInfo() {
+            atom_index    = -1;
+            force_constant = 0.0;
+            x = y = z = delta = 0.0;
+            global_index = -1;
+        }
+
+        CartesianRestraintInfo(int atom_index, float x, float y, float z, float delta,
+                float force_constant, int global_index) : atom_index(atom_index), x(x),
+                                                            y(y), z(z), delta(delta), force_constant(force_constant),
                                                             global_index(global_index) {
         }
     };
