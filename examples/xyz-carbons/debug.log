@@ -1,0 +1,116 @@
+loading data store
+initializing communicator
+loading data store
+initializing communicator
+loading data store
+initializing communicator
+laufer-bogetti:001 2023-12-08 14:21:35 INFO meld.remd.launch: Launching replica exchange on worker
+laufer-bogetti:002 2023-12-08 14:21:35 INFO meld.remd.launch: Launching replica exchange on worker
+laufer-bogetti:001 2023-12-08 14:21:35 INFO meld.remd.launch: Meld version is 0.6.1
+laufer-bogetti:002 2023-12-08 14:21:35 INFO meld.remd.launch: Meld version is 0.6.1
+laufer-bogetti:001 2023-12-08 14:21:35 INFO meld.remd.launch: OpenMM_Meld version is 7.7.0.dev-130124a
+laufer-bogetti:002 2023-12-08 14:21:35 INFO meld.remd.launch: OpenMM_Meld version is 7.7.0.dev-130124a
+laufer-bogetti:001 2023-12-08 14:21:35 INFO meld.remd.launch: Loading system
+laufer-bogetti:002 2023-12-08 14:21:35 INFO meld.remd.launch: Loading system
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.remd.launch: Launching replica exchange on leader
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.remd.launch: Meld version is 0.6.1
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.remd.launch: OpenMM_Meld version is 7.7.0.dev-130124a
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.remd.launch: Loading system
+laufer-bogetti:001 2023-12-08 14:21:35 INFO meld.remd.launch: Loading run options
+laufer-bogetti:002 2023-12-08 14:21:35 INFO meld.remd.launch: Loading run options
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.remd.launch: Loading run options
+Warning: importing 'simtk.openmm' is deprecated.  Import 'openmm' instead.
+Warning: importing 'simtk.openmm' is deprecated.  Import 'openmm' instead.
+laufer-bogetti:001 2023-12-08 14:21:35 INFO meld.remd.worker: Running replica exchange step 1 of 10.
+laufer-bogetti:002 2023-12-08 14:21:35 INFO meld.remd.worker: Running replica exchange step 1 of 10.
+Warning: importing 'simtk.openmm' is deprecated.  Import 'openmm' instead.
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.remd.leader: Beginning replica exchange
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.remd.leader: Running replica exchange step 1 of 10.
+laufer-bogetti:000 2023-12-08 14:21:35 DEBUG meld.comm: distribute_states_to_workers took 0.457 ms
+laufer-bogetti:000 2023-12-08 14:21:35 DEBUG meld.comm: distribute_alphas_to_workers took 0.037 ms
+laufer-bogetti:001 2023-12-08 14:21:35 DEBUG meld.comm: receive_states_from_leader took 6.172 ms
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.remd.leader: Running Hamiltonian 1 of 1
+laufer-bogetti:002 2023-12-08 14:21:35 DEBUG meld.comm: receive_states_from_leader took 6.215 ms
+laufer-bogetti:001 2023-12-08 14:21:35 DEBUG meld.comm: receive_alphas_from_leader took 0.034 ms
+laufer-bogetti:001 2023-12-08 14:21:35 INFO meld.remd.worker: Running Hamiltonian 1 of 1
+laufer-bogetti:002 2023-12-08 14:21:35 DEBUG meld.comm: receive_alphas_from_leader took 0.035 ms
+laufer-bogetti:002 2023-12-08 14:21:35 INFO meld.remd.worker: Running Hamiltonian 1 of 1
+laufer-bogetti:000 2023-12-08 14:21:35 INFO meld.runner.openmm_runner: Using CPU platform.
+laufer-bogetti:001 2023-12-08 14:21:35 INFO meld.runner.openmm_runner: Using CPU platform.
+laufer-bogetti:002 2023-12-08 14:21:35 INFO meld.runner.openmm_runner: Using CPU platform.
+0 0.0 0.1
+1 1.0 0.1
+0 0.0 0.1
+1 0.5 0.1
+Traceback (most recent call last):
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/bin/launch_remd", line 7, in <module>
+    exec(compile(f.read(), __file__, 'exec'))
+  File "/home/anthony/apps/meld/scripts/launch_remd", line 34, in <module>
+    main()
+  File "/home/anthony/apps/meld/scripts/launch_remd", line 29, in main
+    launch.launch(args.platform, console, args.debug, args.console_log)
+  File "/home/anthony/apps/meld/meld/remd/launch.py", line 110, in launch
+    remd_runner.run(communicator, system_runner, store)
+  File "/home/anthony/apps/meld/meld/remd/leader.py", line 129, in run
+    system_runner.prepare_for_timestep(state, alpha, self._step)
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 103, in prepare_for_timestep
+    self._initialize_simulation(state)
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 292, in _initialize_simulation
+    self._simulation = _create_openmm_simulation(
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 632, in _create_openmm_simulation
+    return app.Simulation(topology, system, integrator, platform, properties)
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/lib/python3.10/site-packages/openmm/app/simulation.py", line 103, in __init__
+    self.context = mm.Context(self.system, self.integrator, platform, platformProperties)
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/lib/python3.10/site-packages/openmm/openmm.py", line 12378, in __init__
+0 0.0 0.1
+1 1.0 0.1
+0 0.0 0.1
+1 0.5 0.1
+Traceback (most recent call last):
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/bin/launch_remd", line 7, in <module>
+    exec(compile(f.read(), __file__, 'exec'))
+  File "/home/anthony/apps/meld/scripts/launch_remd", line 34, in <module>
+    main()
+  File "/home/anthony/apps/meld/scripts/launch_remd", line 29, in main
+    launch.launch(args.platform, console, args.debug, args.console_log)
+  File "/home/anthony/apps/meld/meld/remd/launch.py", line 113, in launch
+    remd_runner.run(communicator, system_runner)
+  File "/home/anthony/apps/meld/meld/remd/worker.py", line 80, in run
+    system_runner.prepare_for_timestep(state, alpha, self._step)
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 103, in prepare_for_timestep
+    self._initialize_simulation(state)
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 292, in _initialize_simulation
+    self._simulation = _create_openmm_simulation(
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 632, in _create_openmm_simulation
+0 0.0 0.1
+1 1.0 0.1
+0 0.0 0.1
+1 0.5 0.1
+Traceback (most recent call last):
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/bin/launch_remd", line 7, in <module>
+    return app.Simulation(topology, system, integrator, platform, properties)
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/lib/python3.10/site-packages/openmm/app/simulation.py", line 103, in __init__
+    exec(compile(f.read(), __file__, 'exec'))
+  File "/home/anthony/apps/meld/scripts/launch_remd", line 34, in <module>
+    self.context = mm.Context(self.system, self.integrator, platform, platformProperties)
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/lib/python3.10/site-packages/openmm/openmm.py", line 12378, in __init__
+    main()
+  File "/home/anthony/apps/meld/scripts/launch_remd", line 29, in main
+    launch.launch(args.platform, console, args.debug, args.console_log)
+  File "/home/anthony/apps/meld/meld/remd/launch.py", line 113, in launch
+    remd_runner.run(communicator, system_runner)
+  File "/home/anthony/apps/meld/meld/remd/worker.py", line 80, in run
+    system_runner.prepare_for_timestep(state, alpha, self._step)
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 103, in prepare_for_timestep
+    self._initialize_simulation(state)
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 292, in _initialize_simulation
+    self._simulation = _create_openmm_simulation(
+  File "/home/anthony/apps/meld/meld/runner/openmm_runner.py", line 632, in _create_openmm_simulation
+    return app.Simulation(topology, system, integrator, platform, properties)
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/lib/python3.10/site-packages/openmm/app/simulation.py", line 103, in __init__
+    self.context = mm.Context(self.system, self.integrator, platform, platformProperties)
+  File "/home/anthony/apps/anaconda3/envs/mamba/envs/meld-hope/lib/python3.10/site-packages/openmm/openmm.py", line 12378, in __init__
+    _openmm.Context_swiginit(self, _openmm.new_Context(*args))
+openmm.OpenMMException: Group with index 0 references Restraint outside of range[0,-1].
+laufer-bogetti:000 2023-12-08 14:21:35 CRITICAL meld.comm: MPI node 1/3 raised exception.
+Abort(1) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 1) - process 0
