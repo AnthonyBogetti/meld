@@ -56,6 +56,8 @@ class AmberOptions:
     enable_amap: bool = False
     amap_alpha_bias: float = 1.0
     amap_beta_bias: float = 1.0
+    use_amberfiles: bool = False
+    amberfiles_path: str = "/titan/anthony"
 
     def __post_init__(self):
         # Sanity checks for implicit and explicit solvent
@@ -210,6 +212,11 @@ class AmberSystemBuilder:
 
             prmtop = app.AmberPrmtopFile("system.top")
             crd = app.AmberInpcrdFile("system.mdcrd")
+
+        if self.options.use_amberfiles:
+            print("Using own amber files.")
+            prmtop = app.AmberPrmtopFile(self.options.amberfiles_path+"/system.top")
+            crd = app.AmberInpcrdFile(self.options.amberfiles_path+"/system.mdcrd")
 
         topology = prmtop.topology
         topology = _add_chains(topology, chains)
